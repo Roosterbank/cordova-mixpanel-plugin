@@ -4,7 +4,7 @@
 
 #import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
-#import "UIView+MPHelpers.h"
+#import "MPCategoryHelpers.h"
 #import "MPLogger.h"
 #import "MPNotification.h"
 #import "MPNotificationViewController.h"
@@ -23,7 +23,7 @@
 
 @interface ElasticEaseOutAnimation : CAKeyframeAnimation {}
 
-- (instancetype)initWithStartValue:(CGRect)start endValue:(CGRect)end andDuration:(double)duration;
+- (id)initWithStartValue:(CGRect)start endValue:(CGRect)end andDuration:(double)duration;
 
 @end
 
@@ -147,11 +147,7 @@
     return UIStatusBarAnimationFade;
 }
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 90000
-- (UIInterfaceOrientationMask)supportedInterfaceOrientations
-#else
 - (NSUInteger)supportedInterfaceOrientations
-#endif
 {
     return UIInterfaceOrientationMaskPortrait;
 }
@@ -275,15 +271,12 @@
     self.bodyLabel.lineBreakMode = NSLineBreakByWordWrapping;
     self.bodyLabel.numberOfLines = 0;
 
-    if (!self.backgroundColor) {
-        self.backgroundColor = [UIColor mp_applicationPrimaryColor];
-        if (!self.backgroundColor) {
-            self.backgroundColor = [UIColor mp_darkEffectColor];
-        }
+    UIColor *backgroundColor = [UIColor mp_applicationPrimaryColor];
+    if (!backgroundColor) {
+        backgroundColor = [UIColor mp_darkEffectColor];
     }
-
-    UIColor *backgroundColorWithAlphaComponent = [self.backgroundColor colorWithAlphaComponent:0.95f];
-    self.view.backgroundColor = backgroundColorWithAlphaComponent;
+    backgroundColor = [backgroundColor colorWithAlphaComponent:0.95f];
+    self.view.backgroundColor = backgroundColor;
 
     if (self.notification != nil) {
         if (self.notification.image != nil) {
@@ -548,7 +541,7 @@
 
 @implementation MPAlphaMaskView
 
-- (instancetype)initWithCoder:(NSCoder *)aDecoder
+- (id)initWithCoder:(NSCoder *)aDecoder
 {
     if(self = [super initWithCoder:aDecoder]) {
         _maskLayer = [GradientMaskLayer layer];
@@ -570,7 +563,7 @@
 
 @implementation MPActionButton
 
-- (instancetype)initWithCoder:(NSCoder *)aDecoder
+- (id)initWithCoder:(NSCoder *)aDecoder
 {
     if (self = [super initWithCoder:aDecoder]) {
         self.layer.backgroundColor = [UIColor colorWithRed:43.0f/255.0f green:43.0f/255.0f blue:52.0f/255.0f alpha:1.0f].CGColor;
@@ -637,7 +630,7 @@
 
 @implementation CircleLayer
 
-+ (instancetype)layer {
++ (id)layer {
     CircleLayer *cl = (CircleLayer *)[super layer];
     cl.circlePadding = 2.5f;
     return cl;
@@ -707,7 +700,7 @@
 
 @implementation ElasticEaseOutAnimation
 
-- (instancetype)initWithStartValue:(CGRect)start endValue:(CGRect)end andDuration:(double)duration
+- (id)initWithStartValue:(CGRect)start endValue:(CGRect)end andDuration:(double)duration
 {
     if ((self = [super init])) {
         self.duration = duration;
