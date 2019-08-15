@@ -492,16 +492,6 @@ static Mixpanel *sharedInstance = nil;
     return distinctId;
 }
 
-- (void) checkArchiveProperties {
-  dispatch_async(dispatch_get_main_queue(), ^{
-    if ([Mixpanel inBackground]) {
-      dispatch_async(self.serialQueue, ^{
-        [self archiveProperties];
-      });
-    }
-  });
-}
-
 - (void)identify:(NSString *)distinctId
 {
     if (distinctId == nil || distinctId.length == 0) {
@@ -519,7 +509,7 @@ static Mixpanel *sharedInstance = nil;
             [self.people.unidentifiedQueue removeAllObjects];
             [self archivePeople];
         }
-        [self checkArchiveProperties];
+        [self checkNeedsArchive:@selector(archiveProperties)];
     });
 }
 
@@ -578,7 +568,7 @@ static Mixpanel *sharedInstance = nil;
         if ([self.eventsQueue count] > 500) {
             [self.eventsQueue removeObjectAtIndex:0];
         }
-        [self checkArchiveProperties];
+        [self checkNeedsArchive:@selector(archiveProperties)];
     });
 }
 
@@ -590,7 +580,7 @@ static Mixpanel *sharedInstance = nil;
         NSMutableDictionary *tmp = [NSMutableDictionary dictionaryWithDictionary:self.superProperties];
         [tmp addEntriesFromDictionary:properties];
         self.superProperties = [NSDictionary dictionaryWithDictionary:tmp];
-        [self checkArchiveProperties];
+        [self checkNeedsArchive:@selector(archiveProperties)];
     });
 }
 
@@ -612,7 +602,7 @@ static Mixpanel *sharedInstance = nil;
             }
         }
         self.superProperties = [NSDictionary dictionaryWithDictionary:tmp];
-        [self checkArchiveProperties];
+        [self checkNeedsArchive:@selector(archiveProperties)];
     });
 }
 
@@ -624,7 +614,7 @@ static Mixpanel *sharedInstance = nil;
             [tmp removeObjectForKey:propertyName];
         }
         self.superProperties = [NSDictionary dictionaryWithDictionary:tmp];
-        [self checkArchiveProperties];
+        [self checkNeedsArchive:@selector(archiveProperties)];
     });
 }
 
@@ -632,7 +622,7 @@ static Mixpanel *sharedInstance = nil;
 {
     dispatch_async(self.serialQueue, ^{
         self.superProperties = @{};
-        [self checkArchiveProperties];
+        [self checkNeedsArchive:@selector(archiveProperties)];
     });
 }
 
@@ -670,6 +660,18 @@ static Mixpanel *sharedInstance = nil;
         self.peopleQueue = [NSMutableArray array];
         self.timedEvents = [NSMutableDictionary dictionary];
         [self archive];
+    });
+}
+
+- (void) checkNeedsArchive:(SEL)selector {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if ([Mixpanel inBackground]) {
+            dispatch_async(self.serialQueue, ^{
+                IMP imp = [self methodForSelector:selector];
+                void (*func)(id, SEL) = (void *)imp;
+                func(self, selector);
+            });
+        }
     });
 }
 
@@ -1707,7 +1709,7 @@ static Mixpanel *sharedInstance = nil;
         [shownVariants addEntriesFromDictionary:shownVariant];
         [superProperties addEntriesFromDictionary:@{@"$experiments": [shownVariants copy]}];
         self.superProperties = [superProperties copy];
-        [self checkArchiveProperties];
+        [self checkNeedsArchive:@selector(archiveProperties)];
     });
 
     [self track:@"$experiment_started" properties:@{@"$experiment_id" : @(variant.experimentID), @"$variant_id": @(variant.ID)}];
@@ -1803,9 +1805,7 @@ static Mixpanel *sharedInstance = nil;
                     [self.unidentifiedQueue removeObjectAtIndex:0];
                 }
             }
-            if ([Mixpanel inBackground]) {
-                [strongMixpanel archivePeople];
-            }
+            [strongMixpanel checkNeedsArchive:@selector(archivePeople)];
         });
     }
 }
